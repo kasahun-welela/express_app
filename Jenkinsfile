@@ -8,15 +8,16 @@ pipeline {
             }
         }
 
-        stage('Code Quality') {
-            steps {
-                echo 'Running code quality checks...'
-            }
-        }
-
         stage('Test') {
             steps {
                 echo 'Running tests...'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                echo 'Building Docker image...'
+                sh 'docker build -t hello-world-app:latest .'
             }
         }
 
