@@ -1,29 +1,45 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "kasahunw/test"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
     stages {
-        stage('Build') {
+
+        stage('Checkout') {
             steps {
-                echo 'Building your VS Code Hello World project...'
+                checkout scm
             }
         }
 
-        stage('Test') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Running tests...'
+                sh """
+                docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
+                """
             }
         }
 
-        stage('Docker Build') {
+        stage('Push to Docker Hub') {
             steps {
-                echo 'Building Docker image...'
-                sh 'docker build -t hello-world-app:latest .'
-            }
-        }
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
 
-        stage('Deploy') {
-            steps {
-                echo 'Project successfully executed via Jenkinsfile!'
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                    docker push '$IMAGE_NAME':'$IMAGE_TAG'
+                    docker push '$IMAGE_NAME':latest
+
+                    docker logout
+                    '''
+                }
             }
         }
     }
